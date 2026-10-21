@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>역사 인생네컷 관리자 v2.5</title>
+<title>역사 인생네컷 관리자 v2.6</title>
 <style>
 :root{
   --bg:#f5f6f8;
@@ -255,7 +255,7 @@ tr.match td{background:#fff7d6}
     </label>
     <button class="success" id="btnPrinted">선택 출력 완료</button>
     <button class="outline" id="btnDone">선택 배부 완료</button>
-    <input class="search" id="searchInput" type="search" placeholder="접수번호 찾기" aria-label="접수번호 찾기" autocomplete="off">
+    <input class="search" id="searchInput" type="search" placeholder="번호·학번·이름 찾기" aria-label="접수번호, 학번, 이름으로 찾기" autocomplete="off">
     <label class="checkline">
       <input type="checkbox" id="includeDone"> 완료 항목 포함
     </label>
@@ -284,6 +284,7 @@ tr.match td{background:#fff7d6}
             <th>상태</th>
             <th>접수 시각</th>
             <th>접수번호</th>
+            <th>받을 학생</th>
             <th>부스</th>
             <th>역사 인물</th>
             <th>용량</th>
@@ -450,14 +451,17 @@ async function reloadAdminData(){
   renderJobs();
 }
 
-// 접수번호 검색: "H-" 없이 뒤 6자리 일부만 입력해도 찾습니다.
+// 검색: 접수번호("H-" 없이 일부만), 학번, 이름 어느 것으로도 찾습니다.
 function searchTerm(){
-  return $('searchInput').value.trim().toUpperCase().replace(/^H-?/, '');
+  return $('searchInput').value.trim().toUpperCase();
 }
 
 function matchesSearch(job){
   const term = searchTerm();
-  return !term || String(job.jobId || '').toUpperCase().replace(/^H-/, '').includes(term);
+  if (!term) return true;
+  const id = String(job.jobId || '').toUpperCase();
+  const who = String(job.recipient || '').toUpperCase().replace(/\s+/g, '');
+  return id.includes(term) || id.replace(/^H-/, '').includes(term.replace(/^H-?/, '')) || who.includes(term.replace(/\s+/g, ''));
 }
 
 function selectSearchMatches(){
@@ -478,10 +482,10 @@ function renderJobs(){
   if (!jobs.length){
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 9;
+    td.colSpan = 10;
     td.style.textAlign = 'center';
     td.style.padding = '28px';
-    td.textContent = term ? `접수번호에 "${term}"이(가) 들어간 항목이 없습니다. 완료 항목 포함을 켜 보세요.` : '표시할 접수 항목이 없습니다.';
+    td.textContent = term ? `"${term}"에 맞는 항목이 없습니다. 완료 항목 포함을 켜 보세요.` : '표시할 접수 항목이 없습니다.';
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -496,6 +500,7 @@ function renderJobs(){
       textCell(job.status, `badge ${job.status}`),
       textCell(job.timestamp || ''),
       textCell(job.jobId || '', 'code'),
+      textCell(job.recipient || ''),
       textCell(job.boothId || ''),
       textCell(job.characterLabel || ''),
       textCell(formatBytes(job.imageBytes)),
