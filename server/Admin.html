@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>역사 인생네컷 관리자 v2.4</title>
+<title>역사 인생네컷 관리자 v2.5</title>
 <style>
 :root{
   --bg:#f5f6f8;
@@ -184,6 +184,8 @@ tr.match td{background:#fff7d6}
   .printGrid{
     width:198mm;
     height:285mm;
+    break-after:page;
+    page-break-after:always;
     display:grid;
     grid-template-columns:repeat(4,49.5mm);
     grid-template-rows:repeat(2,142.5mm);
@@ -198,6 +200,10 @@ tr.match td{background:#fff7d6}
     padding:1mm;
     overflow:hidden;
     break-inside:avoid;
+  }
+  .printGrid:last-child{
+    break-after:auto;
+    page-break-after:auto;
   }
   .printCell.filled{
     border:.2mm dashed #aaa;
@@ -227,7 +233,7 @@ tr.match td{background:#fff7d6}
 
 <main id="app" class="wrap">
   <h1>역사 인생네컷 관리자</h1>
-  <p class="sub">접수 대기열 · A4 한 장에 8건 인쇄 · 배부 상태 관리</p>
+  <p class="sub">접수 대기열 · A4 한 장에 8칸 · 같은 사진 여러 장 인쇄 · 배부 상태 관리</p>
 
   <div class="meta">
     <span>행사: <b id="eventCode"></b></span>
@@ -237,7 +243,16 @@ tr.match td{background:#fff7d6}
 
   <div class="toolbar">
     <button class="primary" id="btnRefresh">새로고침</button>
-    <button class="outline" id="btnPrint">선택 1~8건 A4 인쇄</button>
+    <button class="outline" id="btnPrint">선택 A4 인쇄</button>
+    <label class="checkline">
+      사진당
+      <select id="copies" class="search" style="width:auto;padding:6px 8px">
+        <option value="1">1장</option>
+        <option value="2">2장</option>
+        <option value="4" selected>4장</option>
+        <option value="8">8장</option>
+      </select>
+    </label>
     <button class="success" id="btnPrinted">선택 출력 완료</button>
     <button class="outline" id="btnDone">선택 배부 완료</button>
     <input class="search" id="searchInput" type="search" placeholder="접수번호 찾기" aria-label="접수번호 찾기" autocomplete="off">
@@ -292,22 +307,12 @@ tr.match td{background:#fff7d6}
 </main>
 
 <!-- 인쇄 전용 영역 -->
-<section id="printArea">
-  <div class="printGrid" id="printGrid">
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-    <div class="printCell"></div>
-  </div>
-</section>
+<section id="printArea"></section>
 
 <script>
 const STORAGE_KEY = 'history4cut_admin_code';
-const PRINT_MAX = 8;
+const CELLS_PER_PAGE = 8;
+const PRINT_MAX_PAGES = 4;
 const AUTO_REFRESH_MS = 15000;
 
 const S = {
@@ -580,8 +585,12 @@ async function printSelected(){
     return;
   }
 
-  if (ids.length > PRINT_MAX){
-    setStatus(`A4 한 장에는 최대 ${PRINT_MAX}건까지 선택할 수 있습니다.`);
+  // 같은 사진을 여러 장 넣어 학생들이 나눠 가질 수 있게 합니다. (A4 한 장 = 8칸)
+  const copies = Number($('copies').value) || 1;
+  const cells = ids.length * copies;
+  const pages = Math.ceil(cells / CELLS_PER_PAGE);
+  if (pages > PRINT_MAX_PAGES){
+    setStatus(`한 번에 A4 ${PRINT_MAX_PAGES}장까지 인쇄할 수 있습니다. 지금 ${ids.length}건 × ${copies}장 = ${cells}칸(A4 ${pages}장)입니다. 선택을 줄여 주세요.`);
     return;
   }
 
@@ -616,9 +625,9 @@ async function printSelected(){
     }
 
     setProgress(ids.length, ids.length, '이미지 디코딩 중…');
-    await fillPrintGrid(items);
+    await fillPrintGrid(items, copies);
 
-    setStatus(`${items.length}건 인쇄 준비 완료. 인쇄 창을 엽니다.`);
+    setStatus(`${items.length}건 × ${copies}장 = ${cells}칸, A4 ${pages}장 인쇄 준비 완료. 인쇄 창을 엽니다.`);
     showProgress(false);
 
     // 브라우저가 실제 프린터 성공 여부를 알 수 없으므로
@@ -636,22 +645,33 @@ async function printSelected(){
 }
 
 function clearPrintGrid(){
-  document.querySelectorAll('.printCell').forEach(cell => {
-    cell.innerHTML = '';
-    cell.classList.remove('filled');
-  });
+  $('printArea').innerHTML = '';
 }
 
-async function fillPrintGrid(items){
-  const cells = [...document.querySelectorAll('.printCell')];
+// 한 사진의 복사본은 같은 페이지에 이어서 놓습니다. (4장이면 한 줄에 한 팀)
+async function fillPrintGrid(items, copies){
+  const area = $('printArea');
+  const sources = items.flatMap(item => Array(copies).fill(item));
   const pending = [];
+  let grid = null;
 
-  items.forEach((item, i) => {
+  sources.forEach((item, i) => {
+    if (i % CELLS_PER_PAGE === 0){
+      grid = document.createElement('div');
+      grid.className = 'printGrid';
+      for (let k = 0; k < CELLS_PER_PAGE; k++){
+        const cell = document.createElement('div');
+        cell.className = 'printCell';
+        grid.appendChild(cell);
+      }
+      area.appendChild(grid);
+    }
     const img = document.createElement('img');
     img.alt = item.jobId;
     img.src = item.imageData;
-    cells[i].classList.add('filled');
-    cells[i].appendChild(img);
+    const cell = grid.children[i % CELLS_PER_PAGE];
+    cell.classList.add('filled');
+    cell.appendChild(img);
     pending.push(decodeImg(img));
   });
 
