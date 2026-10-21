@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>역사 인생네컷 관리자 v2.4</title>
+<style>
+:root{
+  --bg:#f5f6f8;
+  --card:#fff;
+  --text:#172033;
+  --muted:#6b7280;
+  --line:#d9dee8;
+  --blue:#174ea6;
+  --green:#188038;
+  --red:#b3261e;
+  --amber:#a15c00;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,"Noto Sans KR",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.wrap{max-width:1260px;margin:0 auto;padding:22px}
+h1{margin:0;font-size:27px}
+.sub{margin:6px 0 20px;color:var(--muted)}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 4px 18px rgba(0,0,0,.06);
+  padding:16px;
+}
+.login{
+  max-width:520px;
+  margin:70px auto;
+}
+.login input{
+  width:100%;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:16px;
+  margin:12px 0;
+}
+button,a.btn{
+  border:0;
+  border-radius:8px;
+  padding:11px 14px;
+  min-height:42px;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--blue);color:#fff}
+.success{background:var(--green);color:#fff}
+.danger{background:var(--red);color:#fff}
+.outline{background:#fff;color:var(--text);border:1px solid var(--line)}
+.toolbar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-bottom:14px;
+}
+.spacer{flex:1}
+.meta{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+  color:var(--muted);
+  font-size:14px;
+}
+.meta a{color:var(--blue)}
+.statusbar{
+  min-height:48px;
+  padding:12px 14px;
+  margin-bottom:14px;
+  border-left:4px solid var(--blue);
+  background:#eef3fb;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.spin{
+  width:16px;height:16px;
+  border:3px solid #ccd5e5;
+  border-top-color:var(--blue);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tablebox{overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:980px;background:#fff}
+th,td{
+  padding:10px 9px;
+  border-bottom:1px solid #e8ebf0;
+  text-align:left;
+  font-size:13px;
+  white-space:nowrap;
+}
+th{background:#f7f8fa;position:sticky;top:0;z-index:1}
+tr:hover td{background:#fbfcfe}
+tr.match td{background:#fff7d6}
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+}
+.WAITING{background:#e8f0fe;color:#174ea6}
+.PRINTED{background:#e6f4ea;color:#137333}
+.DONE{background:#eceff1;color:#5f6368}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800}
+.small{font-size:12px;color:var(--muted)}
+.checkline{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-size:14px;
+  color:var(--muted);
+}
+.search{
+  min-height:42px;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:15px;
+  width:190px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.progress{
+  margin:8px 0 0;
+  height:8px;
+  background:#dfe5ef;
+  border-radius:99px;
+  overflow:hidden;
+}
+.progress > div{
+  height:100%;
+  width:0;
+  background:var(--blue);
+  transition:width .2s ease;
+}
+#app{display:none}
+#loginErr{color:var(--red);font-size:14px;min-height:20px}
+.sep{height:1px;background:var(--line);margin:16px 0}
+.dangerZone{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.dangerZone p{color:var(--muted);font-size:13px;line-height:1.5}
+
+/* 화면에서는 숨김 */
+#printArea{display:none}
+
+@media(max-width:700px){
+  .wrap{padding:12px}
+  .toolbar button,.toolbar .btn{flex:1 1 45%}
+}
+
+/* A4 1장에 세로 1:3 결과물 8개 (4열 × 2줄, 각 약 47.5 × 142.5mm) */
+@media print{
+  @page{size:A4 portrait;margin:6mm}
+  body{background:#fff}
+  .wrap,#login{display:none !important}
+  #printArea{
+    display:block !important;
+    width:198mm;
+    height:285mm;
+    margin:0;
+    padding:0;
+  }
+  .printGrid{
+    width:198mm;
+    height:285mm;
+    display:grid;
+    grid-template-columns:repeat(4,49.5mm);
+    grid-template-rows:repeat(2,142.5mm);
+  }
+  .printCell{
+    width:49.5mm;
+    height:142.5mm;
+    border:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:1mm;
+    overflow:hidden;
+    break-inside:avoid;
+  }
+  .printCell.filled{
+    border:.2mm dashed #aaa;
+  }
+  .printCell img{
+    display:block;
+    max-width:100%;
+    max-height:100%;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+  }
+}
+</style>
+</head>
+<body>
+
+<section id="login" class="wrap">
+  <div class="card login">
+    <h1>역사 인생네컷 관리자</h1>
+    <p class="sub">관리자 코드는 이 브라우저 탭의 세션에만 저장됩니다.</p>
+    <input id="adminCodeInput" type="password" autocomplete="current-password" placeholder="관리자 코드">
+    <button class="primary" id="btnLogin" style="width:100%">관리자 열기</button>
+    <div id="loginErr"></div>
+  </div>
+</section>
+
+<main id="app" class="wrap">
+  <h1>역사 인생네컷 관리자</h1>
+  <p class="sub">접수 대기열 · A4 한 장에 8건 인쇄 · 배부 상태 관리</p>
+
+  <div class="meta">
+    <span>행사: <b id="eventCode"></b></span>
+    <a id="sheetLink" href="#" target="_blank" rel="noopener">운영대장 시트</a>
+    <a id="folderLink" href="#" target="_blank" rel="noopener">사진 폴더</a>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" id="btnRefresh">새로고침</button>
+    <button class="outline" id="btnPrint">선택 1~8건 A4 인쇄</button>
+    <button class="success" id="btnPrinted">선택 출력 완료</button>
+    <button class="outline" id="btnDone">선택 배부 완료</button>
+    <input class="search" id="searchInput" type="search" placeholder="접수번호 찾기" aria-label="접수번호 찾기" autocomplete="off">
+    <label class="checkline">
+      <input type="checkbox" id="includeDone"> 완료 항목 포함
+    </label>
+    <label class="checkline">
+      <input type="checkbox" id="autoRefresh"> 15초마다 자동 새로고침
+    </label>
+    <span class="spacer"></span>
+    <button class="outline" id="btnLogout">관리자 코드 지우기</button>
+  </div>
+
+  <div class="statusbar" id="statusbar">
+    <span id="statusText">불러오는 중…</span>
+  </div>
+
+  <div id="loadProgress" style="display:none;margin-bottom:12px">
+    <div class="small" id="progressText"></div>
+    <div class="progress"><div id="progressBar"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll"></th>
+            <th>상태</th>
+            <th>접수 시각</th>
+            <th>접수번호</th>
+            <th>부스</th>
+            <th>역사 인물</th>
+            <th>용량</th>
+            <th>출력 시각</th>
+            <th>배부 시각</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="dangerZone">
+      <b>행사 종료 정리</b>
+      <p>
+        사진 파일을 휴지통으로 이동하고, 운영대장 데이터 행과 중복방지 키를 삭제합니다.
+        폴더·스프레드시트 자체와 헤더는 남겨 둡니다.
+      </p>
+      <button class="danger" id="btnPurge">행사 데이터 일괄 삭제</button>
+    </div>
+  </div>
+</main>
+
+<!-- 인쇄 전용 영역 -->
+<section id="printArea">
+  <div class="printGrid" id="printGrid">
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+    <div class="printCell"></div>
+  </div>
+</section>
+
+<script>
+const STORAGE_KEY = 'history4cut_admin_code';
+const PRINT_MAX = 8;
+const AUTO_REFRESH_MS = 15000;
+
+const S = {
+  adminCode: '',
+  eventCode: '',
+  jobs: [],
+  busy: false,
+  autoTimer: 0
+};
+
+const $ = id => document.getElementById(id);
+
+bind();
+restoreSession();
+
+function bind(){
+  $('btnLogin').onclick = login;
+  $('adminCodeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  $('btnRefresh').onclick = refresh;
+  $('btnPrint').onclick = printSelected;
+  $('btnPrinted').onclick = () => updateStatus('PRINTED');
+  $('btnDone').onclick = () => updateStatus('DONE');
+  $('btnLogout').onclick = logout;
+  $('btnPurge').onclick = purgeEvent;
+
+  $('includeDone').onchange = refresh;
+  $('autoRefresh').onchange = setAutoRefresh;
+  $('searchInput').addEventListener('input', renderJobs);
+  $('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') selectSearchMatches();
+  });
+
+  $('checkAll').onchange = () => {
+    document.querySelectorAll('.rowCheck').forEach(el => {
+      el.checked = $('checkAll').checked;
+    });
+  };
+}
+
+async function restoreSession(){
+  const saved = sessionStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
+
+  S.adminCode = saved;
+  $('adminCodeInput').value = saved;
+
+  try{
+    await openAdmin();
+  }catch(err){
+    sessionStorage.removeItem(STORAGE_KEY);
+    S.adminCode = '';
+    $('adminCodeInput').value = '';
+  }
+}
+
+async function login(){
+  const code = $('adminCodeInput').value.trim();
+  if (!code){
+    $('loginErr').textContent = '관리자 코드를 입력해 주세요.';
+    return;
+  }
+
+  S.adminCode = code;
+  $('loginErr').textContent = '';
+  $('btnLogin').disabled = true;
+
+  try{
+    await openAdmin();
+    sessionStorage.setItem(STORAGE_KEY, code);
+  }catch(err){
+    $('loginErr').textContent = cleanError(err);
+    S.adminCode = '';
+  }finally{
+    $('btnLogin').disabled = false;
+  }
+}
+
+async function openAdmin(){
+  await reloadAdminData();
+
+  $('login').style.display = 'none';
+  $('app').style.display = 'block';
+
+  setStatus(`${S.jobs.length}건을 불러왔습니다.`);
+}
+
+async function refresh(){
+  if (S.busy) return;
+
+  setBusy(true);
+  setStatus('대기열을 새로 불러오는 중입니다…', true);
+
+  try{
+    await reloadAdminData();
+    setStatus(`${S.jobs.length}건을 불러왔습니다.`);
+  }catch(err){
+    handleAdminError(err);
+  }finally{
+    setBusy(false);
+  }
+}
+
+// 자동 새로고침: 체크한 항목을 지키기 위해, 무엇인가 선택되어 있거나 작업 중이면 건너뜁니다.
+function setAutoRefresh(){
+  clearInterval(S.autoTimer);
+  if (!$('autoRefresh').checked) return;
+  S.autoTimer = setInterval(async () => {
+    if (S.busy || !S.adminCode || selectedIds().length) return;
+    try{
+      await reloadAdminData();
+      setStatus(`${S.jobs.length}건 · 자동 새로고침 ${new Date().toLocaleTimeString('ko-KR')}`);
+    }catch(err){
+      handleAdminError(err);
+    }
+  }, AUTO_REFRESH_MS);
+}
+
+async function reloadAdminData(){
+  const data = await gas(
+    'getAdminBootstrap',
+    S.adminCode,
+    $('includeDone').checked
+  );
+
+  S.eventCode = data.eventCode || '';
+  S.jobs = data.jobs || [];
+
+  $('eventCode').textContent = S.eventCode;
+  $('sheetLink').href = data.spreadsheetUrl || '#';
+  $('folderLink').href = data.folderUrl || '#';
+
+  renderJobs();
+}
+
+// 접수번호 검색: "H-" 없이 뒤 6자리 일부만 입력해도 찾습니다.
+function searchTerm(){
+  return $('searchInput').value.trim().toUpperCase().replace(/^H-?/, '');
+}
+
+function matchesSearch(job){
+  const term = searchTerm();
+  return !term || String(job.jobId || '').toUpperCase().replace(/^H-/, '').includes(term);
+}
+
+function selectSearchMatches(){
+  const boxes = [...document.querySelectorAll('.rowCheck')];
+  boxes.forEach(el => { el.checked = true; });
+  setStatus(boxes.length ? `검색된 ${boxes.length}건을 선택했습니다.` : '검색된 접수번호가 없습니다.');
+}
+
+function renderJobs(){
+  const tbody = $('tbody');
+  const checked = new Set(selectedIds());
+  tbody.innerHTML = '';
+  $('checkAll').checked = false;
+
+  const term = searchTerm();
+  const jobs = S.jobs.filter(matchesSearch);
+
+  if (!jobs.length){
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 9;
+    td.style.textAlign = 'center';
+    td.style.padding = '28px';
+    td.textContent = term ? `접수번호에 "${term}"이(가) 들어간 항목이 없습니다. 완료 항목 포함을 켜 보세요.` : '표시할 접수 항목이 없습니다.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  jobs.forEach(job => {
+    const tr = document.createElement('tr');
+    if (term) tr.className = 'match';
+
+    const cells = [
+      checkboxCell(job.jobId, checked.has(String(job.jobId))),
+      textCell(job.status, `badge ${job.status}`),
+      textCell(job.timestamp || ''),
+      textCell(job.jobId || '', 'code'),
+      textCell(job.boothId || ''),
+      textCell(job.characterLabel || ''),
+      textCell(formatBytes(job.imageBytes)),
+      textCell(job.printedAt || ''),
+      textCell(job.doneAt || '')
+    ];
+
+    cells.forEach(td => tr.appendChild(td));
+    tbody.appendChild(tr);
+  });
+}
+
+function checkboxCell(jobId, checked){
+  const td = document.createElement('td');
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.className = 'rowCheck';
+  input.value = jobId;
+  input.checked = !!checked;
+  td.appendChild(input);
+  return td;
+}
+
+function textCell(text, cls){
+  const td = document.createElement('td');
+
+  if (cls){
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text;
+    td.appendChild(span);
+  }else{
+    td.textContent = text;
+  }
+
+  return td;
+}
+
+function selectedIds(){
+  return [...document.querySelectorAll('.rowCheck:checked')]
+    .map(el => el.value);
+}
+
+async function updateStatus(status){
+  if (S.busy) return;
+
+  const ids = selectedIds();
+  if (!ids.length){
+    setStatus('먼저 항목을 선택해 주세요.');
+    return;
+  }
+
+  setBusy(true);
+  setStatus(
+    status === 'PRINTED'
+      ? `${ids.length}건을 출력 완료 처리하는 중입니다…`
+      : `${ids.length}건을 배부 완료 처리하는 중입니다…`,
+    true
+  );
+
+  try{
+    const fn = status === 'PRINTED'
+      ? 'markJobsPrinted'
+      : 'markJobsDone';
+
+    const result = await gas(fn, S.adminCode, ids);
+
+    // 처리한 항목은 선택을 풀어야 자동 새로고침이 다시 동작합니다.
+    document.querySelectorAll('.rowCheck').forEach(el => { el.checked = false; });
+    await reloadAdminData();
+    setStatus(`${result.updated}건을 ${status} 상태로 변경했습니다.`);
+
+  }catch(err){
+    handleAdminError(err);
+  }finally{
+    setBusy(false);
+  }
+}
+
+async function printSelected(){
+  if (S.busy) return;
+
+  const ids = selectedIds();
+
+  if (!ids.length){
+    setStatus('인쇄할 항목을 선택해 주세요.');
+    return;
+  }
+
+  if (ids.length > PRINT_MAX){
+    setStatus(`A4 한 장에는 최대 ${PRINT_MAX}건까지 선택할 수 있습니다.`);
+    return;
+  }
+
+  setBusy(true);
+  showProgress(true);
+  clearPrintGrid();
+
+  try{
+    const items = [];
+
+    // 의도적으로 순차 호출:
+    // 한 번에 큰 base64 여러 개를 반환하지 않고 1건씩 받아 메모리와 실패 범위를 줄입니다.
+    for (let i=0; i<ids.length; i++){
+      setProgress(i, ids.length, `${i+1}/${ids.length} 이미지 불러오는 중 · ${ids[i]}`);
+
+      let item = null;
+      let lastErr = null;
+
+      // 인쇄용 1건 로딩 자체도 1회 재시도
+      for (let attempt=1; attempt<=2; attempt++){
+        try{
+          item = await gas('getPrintItem', S.adminCode, ids[i]);
+          break;
+        }catch(err){
+          lastErr = err;
+          if (attempt < 2) await sleep(500);
+        }
+      }
+
+      if (!item) throw lastErr || new Error(`${ids[i]} 이미지를 불러오지 못했습니다.`);
+      items.push(item);
+    }
+
+    setProgress(ids.length, ids.length, '이미지 디코딩 중…');
+    await fillPrintGrid(items);
+
+    setStatus(`${items.length}건 인쇄 준비 완료. 인쇄 창을 엽니다.`);
+    showProgress(false);
+
+    // 브라우저가 실제 프린터 성공 여부를 알 수 없으므로
+    // PRINTED 상태는 자동 변경하지 않고 관리자가 확인 후 버튼을 누릅니다.
+    window.print();
+
+    setStatus('인쇄가 정상적으로 끝났다면 “선택 출력 완료”를 눌러 주세요. 인쇄 설정은 A4 · 배율 100% · 여백 기본값으로 해 주세요.');
+
+  }catch(err){
+    setStatus('인쇄 준비 실패: ' + cleanError(err));
+    showProgress(false);
+  }finally{
+    setBusy(false);
+  }
+}
+
+function clearPrintGrid(){
+  document.querySelectorAll('.printCell').forEach(cell => {
+    cell.innerHTML = '';
+    cell.classList.remove('filled');
+  });
+}
+
+async function fillPrintGrid(items){
+  const cells = [...document.querySelectorAll('.printCell')];
+  const pending = [];
+
+  items.forEach((item, i) => {
+    const img = document.createElement('img');
+    img.alt = item.jobId;
+    img.src = item.imageData;
+    cells[i].classList.add('filled');
+    cells[i].appendChild(img);
+    pending.push(decodeImg(img));
+  });
+
+  await Promise.all(pending);
+}
+
+async function purgeEvent(){
+  if (S.busy) return;
+
+  const expected = `PURGE ${S.eventCode}`;
+  const answer = prompt(
+    `행사 사진·대기열을 모두 정리합니다.\n되돌릴 수 없습니다.\n\n계속하려면 아래 문구를 그대로 입력하세요.\n${expected}`
+  );
+
+  if (answer === null) return;
+
+  if (answer.trim() !== expected){
+    setStatus('삭제 확인 문구가 일치하지 않아 취소했습니다.');
+    return;
+  }
+
+  setBusy(true);
+  setStatus('행사 데이터를 정리하는 중입니다…', true);
+
+  try{
+    const result = await gas(
+      'purgeEvent',
+      S.adminCode,
+      answer.trim()
+    );
+
+    await reloadAdminData();
+    setStatus(
+      `정리 완료 · 사진 ${result.trashedFiles}개 휴지통 이동 · ` +
+      `대기열 ${result.deletedRows}행 삭제 · 중복키 ${result.removedDedupeKeys}개 삭제`
+    );
+
+  }catch(err){
+    handleAdminError(err);
+  }finally{
+    setBusy(false);
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem(STORAGE_KEY);
+  clearInterval(S.autoTimer);
+  $('autoRefresh').checked = false;
+  S.adminCode = '';
+  S.jobs = [];
+  $('adminCodeInput').value = '';
+  $('app').style.display = 'none';
+  $('login').style.display = 'block';
+  $('loginErr').textContent = '';
+}
+
+function setBusy(on){
+  S.busy = on;
+
+  [
+    'btnRefresh','btnPrint','btnPrinted','btnDone',
+    'btnLogout','btnPurge'
+  ].forEach(id => {
+    $(id).disabled = on;
+  });
+}
+
+function setStatus(msg, spin){
+  $('statusbar').innerHTML = '';
+
+  if (spin){
+    const s = document.createElement('span');
+    s.className = 'spin';
+    $('statusbar').appendChild(s);
+  }
+
+  const t = document.createElement('span');
+  t.id = 'statusText';
+  t.textContent = msg;
+  $('statusbar').appendChild(t);
+}
+
+function showProgress(on){
+  $('loadProgress').style.display = on ? 'block' : 'none';
+  if (!on){
+    $('progressBar').style.width = '0%';
+    $('progressText').textContent = '';
+  }
+}
+
+function setProgress(done, total, msg){
+  const pct = total ? Math.round(done / total * 100) : 0;
+  $('progressBar').style.width = pct + '%';
+  $('progressText').textContent = msg;
+}
+
+function handleAdminError(err){
+  const msg = cleanError(err);
+  setStatus(msg);
+
+  if (/인증|로그인된 관리자/.test(msg)){
+    sessionStorage.removeItem(STORAGE_KEY);
+    clearInterval(S.autoTimer);
+    $('autoRefresh').checked = false;
+    S.adminCode = '';
+    $('app').style.display = 'none';
+    $('login').style.display = 'block';
+    $('loginErr').textContent = msg;
+  }
+}
+
+function gas(fn, ...args){
+  const TIMEOUT_MS = 30000;
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`서버 응답 시간이 ${TIMEOUT_MS/1000}초를 넘었습니다. 다시 시도해 주세요.`));
+    }, TIMEOUT_MS);
+
+    const finish = (cb) => (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cb(value);
+    };
+
+    const runner = google.script.run
+      .withSuccessHandler(finish(resolve))
+      .withFailureHandler(finish(reject));
+
+    try{
+      runner[fn](...args);
+    }catch(err){
+      if (!settled){
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    }
+  });
+}
+
+function decodeImg(img){
+  if (img.decode){
+    return img.decode();
+  }
+
+  return new Promise((resolve, reject) => {
+    if (img.complete && img.naturalWidth) return resolve();
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+}
+
+function formatBytes(n){
+  const v = Number(n || 0);
+  if (!v) return '';
+  if (v < 1024) return v + ' B';
+  if (v < 1024*1024) return Math.round(v/1024) + ' KB';
+  return (v/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function cleanError(err){
+  if (!err) return '알 수 없는 오류입니다.';
+  return String(err.message || err)
+    .replace(/^Exception:\s*/,'')
+    .replace(/^Error:\s*/,'');
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+</script>
+</body>
+</html>

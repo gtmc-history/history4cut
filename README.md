@@ -8,13 +8,14 @@
 history4cut/
 ├─ index.html   ← 촬영 페이지 (이 파일 하나로 작동)
 ├─ README.md
+├─ server/      ← 관리자 화면 v2.4, 서버 연동 가이드 (Apps Script용, Pages와 무관)
 └─ docs/        ← 운영 안내·검증 기록
 ```
 
 ## 배포
 
 1. 이 저장소의 `index.html`이 GitHub Pages로 바로 배포됩니다. 수정은 이 파일만 고치면 됩니다.
-2. **서버(Code.gs)는 고치지 않아도 됩니다.** 접수 데이터는 기존과 같은 `characterId:'none'`으로 보냅니다.
+2. **서버(Code.gs)는 고치지 않아도 됩니다.** 관리자 화면만 `server/Admin.html` v2.4로 바꾸면 A4 한 장에 8장 인쇄·번호 검색을 쓸 수 있습니다. (`server/서버-연동-가이드.md`) 접수 데이터는 기존과 같은 `characterId:'none'`으로 보냅니다.
 3. 크롬북에서 한 장 찍어 스티커를 붙이고 접수한 뒤, 관리자 화면에서 인쇄용 사진에 스티커가 들어갔는지 봅니다.
 
 ## 사용할 수 있는 기기
