@@ -329,8 +329,7 @@ function renderStickerPalette(){
 }
 // 휴대폰 세로처럼 좁은 화면에서는 한 컷을 화면 너비에 맞춰 크게 보여 줍니다. (이동만 하고 크기 변환은 하지 않아 끌기 계산이 그대로 맞습니다)
 // 학번·이름: 제어 문자를 지우고 공백을 하나로, 20자까지만 받습니다.
-const cleanRecipient=v=>String(v||'').replace(/[\u0000-\u001f\u007f<>]/g,'').replace(/\s+/g,' ').trim().slice(0,20);
-function setRecipient(v){S.recipient=cleanRecipient(v);if($('recipientInput').value!==S.recipient&&document.activeElement!==$('recipientInput'))$('recipientInput').value=S.recipient;}
+// 배포판은 학생 이름·학번을 수집하지 않습니다.
 const narrow=()=>matchMedia('(max-width:780px)').matches;
 const focusOn=()=>narrow()&&S.focus&&S.shots.length===4;
 function layoutFocus(){
